@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "sovereign-debt-forecasting-tool"
+version = "0.1.0"
+description = "ML model and front to make scenario prediction on Sovereign Debt evolution."
+authors = ["Richard Gabriel <gabriel.richard@student-cs.fr>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+matplotlib = "^3.10.3"
+plotly = "^6.1.2"
+dash = "^3.0.4"
+prophet = "^1.1.7"
+
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
