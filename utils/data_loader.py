@@ -3,7 +3,7 @@ import os
 
 def load_and_process_france_data(raw_dir="data/raw/France") -> pd.DataFrame:
     # --- Load Debt from World Bank ---
-    debt_path = os.path.join(raw_dir, "138151a4-6fe8-4339-9bb7-028bdb79d3b3_Data.csv")
+    debt_path = os.path.join(raw_dir, "France_debt_to_gdp.csv")
     df_wb = pd.read_csv(debt_path)
     df_wb = df_wb.dropna(subset=["Series Code"])
     df_wb = df_wb[(df_wb["Country Name"] == "France") & (df_wb["Series Code"] == "GC.DOD.TOTL.GD.ZS")]
@@ -25,7 +25,6 @@ def load_and_process_france_data(raw_dir="data/raw/France") -> pd.DataFrame:
 
     # --- Load and Process ECB Rate ---
     ecb_path = os.path.join(raw_dir, "ECB Data Portal_20250609175119.csv")
-    
     df_ecb = pd.read_csv(ecb_path)
     df_ecb.columns = ["Date", "TimePeriod", "ECBRate"]
     df_ecb["Date"] = pd.to_datetime(df_ecb["Date"], errors="coerce")
@@ -33,18 +32,12 @@ def load_and_process_france_data(raw_dir="data/raw/France") -> pd.DataFrame:
     df_ecb = df_ecb.dropna(subset=["ECBRate"])
     df_ecb = df_ecb.sort_values("Date")
 
-    # Create a full daily time series
     date_range = pd.date_range(start=df_ecb["Date"].min(), end=df_ecb["Date"].max(), freq="D")
     df_full = pd.DataFrame({"Date": date_range})
     df_full = df_full.merge(df_ecb[["Date", "ECBRate"]], on="Date", how="left")
-
-    # Forward-fill to get the effective rate at each date
     df_full["ECBRate"] = df_full["ECBRate"].ffill()
-
-    # Compute annual average ECB rate
     df_full["Year"] = df_full["Date"].dt.year
     df_ecb_annual = df_full.groupby("Year")["ECBRate"].mean().reset_index()
-
 
     # --- Merge All ---
     df = df_debt.merge(df_deficit, on="Year", how="inner")
@@ -52,5 +45,8 @@ def load_and_process_france_data(raw_dir="data/raw/France") -> pd.DataFrame:
     df = df.dropna(subset=["DebtPctGDP", "DeficitPctGDP", "ECBRate"])
     df = df.sort_values("Year").reset_index(drop=True)
 
-    return df
+    # --- Format for Prophet ---
+    df["ds"] = pd.to_datetime(df["Year"].astype(str) + "-12-31")
+    df["y"] = df["DebtPctGDP"]
 
+    return df[["ds", "y", "DeficitPctGDP", "ECBRate"]]
